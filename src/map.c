@@ -302,6 +302,10 @@ ssize_t map_remove(map_t* map, const char* key, size_t len, void* out) {
     return -ENOENT;
 }
 
+size_t map_count(const map_t* this) {
+    return this->count;
+}
+
 ssize_t map_free(map_t* map) {
     if (map == NULL || map->elements == NULL) {
         return -EINVAL;
