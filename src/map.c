@@ -52,13 +52,14 @@ static const size_t precomputed_prime_table[] = {
 };
 
 static inline uint32_t murmur_hash2(const char* str, size_t len) {
-    uint32_t h     = 0;
-    const size_t m = 0x5bd1e995;
-    const int r    = 24;
+    uint32_t h          = 0;
+    const uint32_t m    = 0x5bd1e995;
+    const uint32_t r    = 24;
+    const uint8_t* ustr = (const uint8_t*)str;
 
     while (len >= 4) {
-        uint32_t k = ((uint32_t)str[0]) | ((uint32_t)str[1] << 8) | ((uint32_t)str[2] << 16) |
-                     ((uint32_t)str[3] << 24);
+        uint32_t k = ((uint32_t)ustr[0]) | ((uint32_t)ustr[1] << 8) | ((uint32_t)ustr[2] << 16) |
+                     ((uint32_t)ustr[3] << 24);
 
         k *= m;
         k ^= k >> r;
@@ -67,18 +68,26 @@ static inline uint32_t murmur_hash2(const char* str, size_t len) {
         h *= m;
         h ^= k;
 
-        str += 4;
+        ustr += 4;
         len -= 4;
     }
 
     switch (len) {
         case 3:
-            h ^= (uint32_t)str[2] << 16;
-        case 2:
-            h ^= (uint32_t)str[1] << 8;
-        case 1:
-            h ^= (uint32_t)str[0];
+            h ^= (uint32_t)ustr[2] << 16;
+            h ^= (uint32_t)ustr[1] << 8;
+            h ^= (uint32_t)ustr[0];
             h *= m;
+            break;
+        case 2:
+            h ^= (uint32_t)ustr[1] << 8;
+            h ^= (uint32_t)ustr[0];
+            h *= m;
+            break;
+        case 1:
+            h ^= (uint32_t)ustr[0];
+            h *= m;
+            break;
         default:
             break;
     }
@@ -162,7 +171,7 @@ static ssize_t map_resize(map_t* map, size_t new_capacity) {
 
         while (current != NULL) {
             map_kv_t* next          = current->next;
-            uint32_t new_index      = current->hash % new_capacity;
+            uint32_t new_index      = current->hash % (uint32_t)new_capacity;
 
             current->next           = new_elements[new_index];
             new_elements[new_index] = current;
@@ -200,7 +209,7 @@ ssize_t map_put(map_t* map, const char* key, size_t size, void* element) {
     }
 
     uint32_t hash     = murmur_hash2(key, size);
-    uint32_t index    = hash % map->capacity;
+    uint32_t index    = hash % (uint32_t)map->capacity;
     map_kv_t* current = map->elements[index];
 
     // Check for existing entry with the key
@@ -246,7 +255,7 @@ ssize_t map_get(map_t* map, const char* key, size_t size, void* out) {
     }
 
     uint32_t hash     = murmur_hash2(key, size);
-    uint32_t index    = hash % map->capacity;
+    uint32_t index    = hash % (uint32_t)map->capacity;
     map_kv_t* element = map->elements[index];
 
     while (element != NULL) {
@@ -267,7 +276,7 @@ ssize_t map_remove(map_t* map, const char* key, size_t len, void* out) {
     }
 
     uint32_t hash      = murmur_hash2(key, len);
-    uint32_t index     = hash % map->capacity;
+    uint32_t index     = hash % (uint32_t)map->capacity;
     map_kv_t* current  = map->elements[index];
     map_kv_t* previous = NULL;
 
